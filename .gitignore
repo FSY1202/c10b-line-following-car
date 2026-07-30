@@ -1,0 +1,12 @@
+# Keil编译产物(可重新生成, 不进版本库)
+OBJ/
+USER/Listings/
+USER/DebugConfig/
+USER/RTE/
+
+# Keil按用户/机器生成的界面状态文件
+USER/*.uvguix.*
+USER/*.uvoptx
+
+# 迭代调试过程中的临时编译日志
+build_*.log
