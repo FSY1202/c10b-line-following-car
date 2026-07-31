@@ -209,6 +209,7 @@ void follow_line(line_following_t* controller, uint16_t* sensor_values,
                  uint16_t line_raw_value) {
     uint8_t filtered_mask = update_sensor_filter(controller, sensor_values,
                                                  line_raw_value);
+    uint32_t now_ms = g_system_tick_ms;
 
     // 主循环约1ms调用一次：灰度每次滤波，速度目标按10ms固定周期更新。
     controller->software_time_ms++;
@@ -226,9 +227,32 @@ void follow_line(line_following_t* controller, uint16_t* sensor_values,
     controller->last_control_ms = controller->software_time_ms;
 
     if (controller->run_timer_started != 0u) {
-        controller->run_elapsed_ms =
-            controller->software_time_ms - controller->run_start_ms;
+        controller->run_elapsed_ms = now_ms - controller->run_start_ms;
     }
+
+    if ((controller->run_timer_started != 0u) &&
+        (controller->run_elapsed_ms >= TRACE_FINISH_ENABLE_TIME_MS) &&
+        (controller->active_sensor_count >=
+         TRACE_FINISH_MIN_ACTIVE_SENSORS)) {
+        if (controller->finish_candidate_active == 0u) {
+            controller->finish_candidate_active = 1u;
+            controller->finish_candidate_start_ms = now_ms;
+        }
+
+        controller->state = LINE_STATE_ALL_BLACK;
+        if ((now_ms - controller->finish_candidate_start_ms) >=
+            TRACE_FINISH_CONFIRM_TIME_MS) {
+            controller->finish_latched = 1u;
+            controller->state = LINE_STATE_FINISHED;
+            reset_line_pid(controller);
+            reset_curve_control(controller);
+            Contrl_Speed(0, 0);
+        }
+        return;
+    }
+
+    controller->finish_candidate_active = 0u;
+    controller->finish_candidate_start_ms = 0u;
 
     if (controller->active_sensor_count == 0u) {
         controller->valid_tracking_streak = 0u;
@@ -255,17 +279,7 @@ void follow_line(line_following_t* controller, uint16_t* sensor_values,
     if (controller->active_sensor_count == GRAYSCALE_SENSOR_CHANNELS) {
         controller->valid_tracking_streak = 0u;
 
-        if ((controller->run_timer_started != 0u) &&
-            (controller->run_elapsed_ms >= TRACE_FINISH_ENABLE_TIME_MS)) {
-            controller->finish_latched = 1u;
-            controller->state = LINE_STATE_FINISHED;
-            reset_line_pid(controller);
-            reset_curve_control(controller);
-            Contrl_Speed(0, 0);
-            return;
-        }
-
-        // 10秒前的全黑不作为终点。若上电就在黑区，先直行驶离黑区；
+        // 30秒前的全黑不作为终点。若启动时就在黑区，先直行驶离黑区；
         // 运行中遇到全黑则保持上一次左右轮目标不变。
         if ((controller->run_timer_started == 0u) &&
             (controller->has_valid_line == 0u)) {
@@ -293,7 +307,7 @@ void follow_line(line_following_t* controller, uint16_t* sensor_values,
 
     if (controller->run_timer_started == 0u) {
         controller->run_timer_started = 1u;
-        controller->run_start_ms = controller->software_time_ms;
+        controller->run_start_ms = now_ms;
         controller->run_elapsed_ms = 0u;
     }
 

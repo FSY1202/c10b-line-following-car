@@ -63,7 +63,9 @@ typedef struct {
     uint32_t last_control_ms;
     uint32_t run_start_ms;
     uint32_t run_elapsed_ms;
+    uint32_t finish_candidate_start_ms;
     uint8_t run_timer_started;
+    uint8_t finish_candidate_active;
     uint8_t finish_latched;
 
 } line_following_t;

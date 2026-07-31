@@ -1,4 +1,4 @@
-#ifndef __TRACE_CONFIG_H__
+﻿#ifndef __TRACE_CONFIG_H__
 #define __TRACE_CONFIG_H__
 
 //==============================================================================
@@ -22,8 +22,8 @@
 #define TRACE_STRAIGHT_KD                    (2.0f)
 
 // 直道基础速度和任意单轮允许的最高目标速度，单位 mm/s。
-#define TRACE_STRAIGHT_BASE_SPEED_MM_S       (170)
-#define TRACE_MAX_WHEEL_SPEED_MM_S           (170)
+#define TRACE_STRAIGHT_BASE_SPEED_MM_S       (200)
+#define TRACE_MAX_WHEEL_SPEED_MM_S           (200)
 
 // 编码器10ms测速每个脉冲约16.9 mm/s，小于该值的差速难以稳定执行。
 // 因此非零纠偏至少给20 mm/s，同时限制最大纠偏避免突然甩动。
@@ -74,9 +74,9 @@
 //------------------------------------------------------------------------------
 // 6. 半径750 mm圆弧速度与弯道PID
 //------------------------------------------------------------------------------
-// 理论内轮约124 mm/s；当前设为120，并由弯道PD继续修正实际偏差。
-#define TRACE_CURVE_OUTER_SPEED_MM_S         (170)
-#define TRACE_CURVE_INNER_SPEED_MM_S         (120)
+// 保持原170/120的实测差速比例；快速档200时内轮取141mm/s。
+#define TRACE_CURVE_OUTER_SPEED_MM_S         (200)
+#define TRACE_CURVE_INNER_SPEED_MM_S         (141)
 
 // 弯道 PID 只在圆弧前馈速度上做修正，不影响直道 PID。
 #define TRACE_CURVE_KP                       (8.0f)
@@ -101,9 +101,11 @@
 //------------------------------------------------------------------------------
 // 8. 终点识别
 //------------------------------------------------------------------------------
-// 从首次识别到正常黑线开始计时；达到该时间后，8路全黑即锁存终点并停车。
-// 10秒以前遇到全黑不会判终点，避免把起点黑色区域误判为终点。
-#define TRACE_FINISH_ENABLE_TIME_MS           (10000u)
+// 从首次识别到正常黑线开始按硬件毫秒计时。满30秒后，至少6路持续
+// 检测到黑色30ms才锁存终点，兼顾斜向通过A点和单路探头偶发漏检。
+#define TRACE_FINISH_ENABLE_TIME_MS           (30000u)
+#define TRACE_FINISH_MIN_ACTIVE_SENSORS       (6u)
+#define TRACE_FINISH_CONFIRM_TIME_MS          (30u)
 
 #if (TRACE_FILTER_SAMPLE_COUNT < 1u) || (TRACE_FILTER_SAMPLE_COUNT > 8u)
 #error "TRACE_FILTER_SAMPLE_COUNT must be in the range 1..8"
@@ -128,3 +130,4 @@
 #endif
 
 #endif
+
