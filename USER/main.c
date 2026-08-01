@@ -79,7 +79,7 @@ int main(void)
 
     Odometry_Init();
     RDK_Link_Init();
-    GCS_Cmd_Init();  // 必须在line_following_init()之后, 上电先保持停车等待启动帧
+    GCS_Cmd_Init();  // 测速工程：上电自动启动并平滑升至配置目标速度
 
     while (1)
     {

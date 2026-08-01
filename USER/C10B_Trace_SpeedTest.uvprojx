@@ -7,7 +7,7 @@
 
   <Targets>
     <Target>
-      <TargetName>C10B_Trace</TargetName>
+      <TargetName>C10B_Trace_SpeedTest</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
       <pCCUsed>5060528::V5.06 update 5 (build 528)::ARMCC</pCCUsed>
@@ -49,7 +49,7 @@
             <InvalidFlash>1</InvalidFlash>
           </TargetStatus>
           <OutputDirectory>..\OBJ\</OutputDirectory>
-          <OutputName>C10B_Trace</OutputName>
+          <OutputName>C10B_Trace_SpeedTest</OutputName>
           <CreateExecutable>1</CreateExecutable>
           <CreateLib>0</CreateLib>
           <CreateHexFile>1</CreateHexFile>
