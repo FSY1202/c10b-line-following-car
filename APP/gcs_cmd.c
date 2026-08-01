@@ -6,6 +6,11 @@
 #define GCS_SPEED_RAMP_PERIOD_MS   (10u)
 #define GCS_SPEED_RAMP_STEP_MM_S   (1)
 
+#define GCS_TASK1_STABLE_START_SPEED_MM_S   (60)
+#define GCS_TASK1_INITIAL_RAMP_END_MS        (600u)
+#define GCS_TASK1_HOLD_END_MS                (4600u)
+#define GCS_TASK1_PROFILE_END_MS             (5000u)
+
 // 第一题需要更长的伴飞窗口，第二题保持已经验证过的慢速。
 #define GCS_SPEED_TASK1_SLOW_MM_S   (100)
 #define GCS_SPEED_TASK2_SLOW_MM_S   (130)
@@ -16,6 +21,7 @@ static uint8_t g_task_number = 0u;
 static int16_t g_current_speed_mm_s = 0;
 static int16_t g_target_speed_mm_s = GCS_SPEED_TASK2_SLOW_MM_S;
 static uint32_t g_last_ramp_ms = 0u;
+static uint32_t g_task1_profile_start_ms = 0u;
 
 // 计算payload_start(含)到star(不含)之间所有字符的逐字节XOR
 static uint8_t compute_checksum(const char* payload_start, const char* star)
@@ -153,6 +159,7 @@ void GCS_Cmd_Init(void)
     g_current_speed_mm_s = 0;
     g_target_speed_mm_s = GCS_SPEED_TASK2_SLOW_MM_S;
     g_last_ramp_ms = g_system_tick_ms;
+    g_task1_profile_start_ms = g_system_tick_ms;
     apply_profile_speed(0);
 }
 
@@ -175,6 +182,40 @@ void GCS_Cmd_Update(void)
     }
 
     now = g_system_tick_ms;
+
+    // Keep task 1 out of the unstable ultra-low-speed steering range while
+    // preserving a five-second A-B catch-up window for the aircraft.
+    if ((g_task_number == 1u) &&
+        (g_target_speed_mm_s == GCS_SPEED_TASK1_SLOW_MM_S) &&
+        ((now - g_task1_profile_start_ms) <= GCS_TASK1_PROFILE_END_MS))
+    {
+        elapsed_ms = now - g_task1_profile_start_ms;
+
+        if (elapsed_ms < GCS_TASK1_INITIAL_RAMP_END_MS)
+        {
+            next_speed = (int32_t)(elapsed_ms / GCS_SPEED_RAMP_PERIOD_MS);
+        }
+        else if (elapsed_ms < GCS_TASK1_HOLD_END_MS)
+        {
+            next_speed = GCS_TASK1_STABLE_START_SPEED_MM_S;
+        }
+        else
+        {
+            next_speed = GCS_TASK1_STABLE_START_SPEED_MM_S +
+                (int32_t)((elapsed_ms - GCS_TASK1_HOLD_END_MS) /
+                          GCS_SPEED_RAMP_PERIOD_MS);
+            if (next_speed > GCS_SPEED_TASK1_SLOW_MM_S)
+            {
+                next_speed = GCS_SPEED_TASK1_SLOW_MM_S;
+            }
+        }
+
+        g_current_speed_mm_s = (int16_t)next_speed;
+        g_last_ramp_ms = now;
+        apply_profile_speed(g_current_speed_mm_s);
+        return;
+    }
+
     elapsed_ms = now - g_last_ramp_ms;
     if (elapsed_ms < GCS_SPEED_RAMP_PERIOD_MS)
     {
@@ -234,6 +275,7 @@ void GCS_Cmd_Poll(void)
             g_current_speed_mm_s = 0;
             apply_slow_speed();
             g_last_ramp_ms = g_system_tick_ms;
+            g_task1_profile_start_ms = g_system_tick_ms;
             apply_profile_speed(0);
             Odometry_Reset();
             g_car_started = 1u;
