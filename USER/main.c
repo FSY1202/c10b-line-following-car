@@ -43,7 +43,9 @@ void line_following_init(line_following_t* controller) {
     controller->last_control_ms = 0u;
     controller->run_start_ms = 0u;
     controller->run_elapsed_ms = 0u;
+    controller->finish_candidate_start_ms = 0u;
     controller->run_timer_started = 0u;
+    controller->finish_candidate_active = 0u;
     controller->finish_latched = 0u;
 
     controller->sensor_weights[0] = TRACE_SENSOR_WEIGHT_0;
@@ -77,12 +79,23 @@ int main(void)
 
     Odometry_Init();
     RDK_Link_Init();
+    GCS_Cmd_Init();  // 必须在line_following_init()之后, 上电先保持停车等待启动帧
 
     while (1)
     {
+        GCS_Cmd_Poll();
+        GCS_Cmd_Update();
+
         Grayscale_Sensor_Read_All(g_sensor_data);
 
-        follow_line(&g_line_controller, g_sensor_data, TRACE_LINE_RAW_VALUE);
+        if (GCS_Cmd_Is_Started())
+        {
+            follow_line(&g_line_controller, g_sensor_data, TRACE_LINE_RAW_VALUE);
+        }
+        else
+        {
+            Motion_Set_Speed(0, 0);
+        }
 
         Odometry_Update();
         RDK_Link_Report_Tick();

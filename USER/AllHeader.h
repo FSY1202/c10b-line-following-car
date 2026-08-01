@@ -34,5 +34,6 @@
 // 里程计与地瓜派通信部分
 #include "odometry.h"
 #include "rdk_link.h"
+#include "gcs_cmd.h"
 
 #endif

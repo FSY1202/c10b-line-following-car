@@ -634,6 +634,16 @@
               <FileType>5</FileType>
               <FilePath>..\APP\rdk_link.h</FilePath>
             </File>
+            <File>
+              <FileName>gcs_cmd.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\APP\gcs_cmd.c</FilePath>
+            </File>
+            <File>
+              <FileName>gcs_cmd.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\APP\gcs_cmd.h</FilePath>
+            </File>
           </Files>
         </Group>
       </Groups>
