@@ -9,10 +9,10 @@
 只修改 `APP/speed_test_config.h`：
 
 ```c
-#define SPEED_TEST_TARGET_MM_S (300)
+#define SPEED_TEST_TARGET_MM_S (220)
 ```
 
-建议依次测试 `240`、`270`、`300 mm/s`。速度以 `100 mm/s^2` 平滑增加，达到300约需3秒。
+建议依次测试 `220`、`240`、`270`、`300 mm/s`。速度以 `100 mm/s^2` 平滑增加，当前达到220约需2.2秒。
 
 ## 保留与取消的功能
 

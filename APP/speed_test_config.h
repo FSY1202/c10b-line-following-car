@@ -1,10 +1,10 @@
 #ifndef __SPEED_TEST_CONFIG_H
 #define __SPEED_TEST_CONFIG_H
 
-// Change only this value when testing 240, 270, or 300 mm/s.
-#define SPEED_TEST_TARGET_MM_S       (300)
+// Change only this value when testing 220, 240, 270, or 300 mm/s.
+#define SPEED_TEST_TARGET_MM_S       (220)
 
-// 1 mm/s every 10 ms = 100 mm/s^2. The car reaches 300 mm/s in about 3 s.
+// 1 mm/s every 10 ms = 100 mm/s^2. The car reaches 220 mm/s in about 2.2 s.
 #define SPEED_TEST_RAMP_PERIOD_MS    (10u)
 #define SPEED_TEST_RAMP_STEP_MM_S    (1)
 
