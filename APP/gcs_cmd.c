@@ -10,6 +10,7 @@
 #define GCS_TASK1_INITIAL_RAMP_END_MS        (600u)
 #define GCS_TASK1_HOLD_END_MS                (4600u)
 #define GCS_TASK1_PROFILE_END_MS             (5000u)
+#define GCS_TASK2_INITIAL_FAST_TIME_MS        (5000u)
 
 // 第一题需要更长的伴飞窗口，第二题保持已经验证过的慢速。
 #define GCS_SPEED_TASK1_SLOW_MM_S   (100)
@@ -22,6 +23,8 @@ static int16_t g_current_speed_mm_s = 0;
 static int16_t g_target_speed_mm_s = GCS_SPEED_TASK2_SLOW_MM_S;
 static uint32_t g_last_ramp_ms = 0u;
 static uint32_t g_task1_profile_start_ms = 0u;
+static uint32_t g_task2_initial_fast_start_ms = 0u;
+static uint8_t g_task2_initial_fast_active = 0u;
 
 // 计算payload_start(含)到star(不含)之间所有字符的逐字节XOR
 static uint8_t compute_checksum(const char* payload_start, const char* star)
@@ -124,6 +127,10 @@ static void apply_slow_speed(void)
     {
         g_target_speed_mm_s = GCS_SPEED_TASK1_SLOW_MM_S;
     }
+    else if (g_task2_initial_fast_active != 0u)
+    {
+        g_target_speed_mm_s = GCS_SPEED_FAST_MM_S;
+    }
     else
     {
         g_target_speed_mm_s = GCS_SPEED_TASK2_SLOW_MM_S;
@@ -160,6 +167,8 @@ void GCS_Cmd_Init(void)
     g_target_speed_mm_s = GCS_SPEED_TASK2_SLOW_MM_S;
     g_last_ramp_ms = g_system_tick_ms;
     g_task1_profile_start_ms = g_system_tick_ms;
+    g_task2_initial_fast_start_ms = g_system_tick_ms;
+    g_task2_initial_fast_active = 0u;
     apply_profile_speed(0);
 }
 
@@ -182,6 +191,17 @@ void GCS_Cmd_Update(void)
     }
 
     now = g_system_tick_ms;
+
+    // Task 2 runs at 200 mm/s for the first five seconds, then returns to
+    // the normal 130 mm/s landing speed using the existing smooth ramp.
+    if ((g_task2_initial_fast_active != 0u) &&
+        ((now - g_task2_initial_fast_start_ms) >=
+         GCS_TASK2_INITIAL_FAST_TIME_MS))
+    {
+        g_task2_initial_fast_active = 0u;
+        g_target_speed_mm_s = GCS_SPEED_TASK2_SLOW_MM_S;
+        g_last_ramp_ms = now;
+    }
 
     // Keep task 1 out of the unstable ultra-low-speed steering range while
     // preserving a five-second A-B catch-up window for the aircraft.
@@ -272,10 +292,15 @@ void GCS_Cmd_Poll(void)
     {
         if ((g_car_started == 0u) && (g_task_number != 0u))
         {
+            uint32_t start_ms = g_system_tick_ms;
+
             g_current_speed_mm_s = 0;
+            g_task2_initial_fast_active =
+                (g_task_number == 2u) ? 1u : 0u;
+            g_task2_initial_fast_start_ms = start_ms;
             apply_slow_speed();
-            g_last_ramp_ms = g_system_tick_ms;
-            g_task1_profile_start_ms = g_system_tick_ms;
+            g_last_ramp_ms = start_ms;
+            g_task1_profile_start_ms = start_ms;
             apply_profile_speed(0);
             Odometry_Reset();
             g_car_started = 1u;
@@ -299,6 +324,7 @@ void GCS_Cmd_Poll(void)
     }
     else if (code == 2)
     {
+        g_task2_initial_fast_active = 0u;
         apply_fast_speed();
     }
     // 其他code值: 不认识, 忽略不处理
