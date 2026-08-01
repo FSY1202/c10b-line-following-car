@@ -19,6 +19,7 @@
 
 static uint8_t g_car_started = 0u;
 static uint8_t g_task_number = 0u;
+static uint8_t g_start_requested = 0u;
 static int16_t g_current_speed_mm_s = 0;
 static int16_t g_target_speed_mm_s = GCS_SPEED_TASK2_SLOW_MM_S;
 static uint32_t g_last_ramp_ms = 0u;
@@ -155,6 +156,30 @@ static void apply_profile_speed(int16_t speed_mm_s)
                   TRACE_CURVE_OUTER_SPEED_MM_S);
 }
 
+static void try_start_car(void)
+{
+    uint32_t start_ms;
+
+    if ((g_car_started != 0u) ||
+        (g_start_requested == 0u) ||
+        (g_task_number == 0u))
+    {
+        return;
+    }
+
+    start_ms = g_system_tick_ms;
+    g_current_speed_mm_s = 0;
+    g_task2_initial_fast_active =
+        (g_task_number == 2u) ? 1u : 0u;
+    g_task2_initial_fast_start_ms = start_ms;
+    apply_slow_speed();
+    g_last_ramp_ms = start_ms;
+    g_task1_profile_start_ms = start_ms;
+    apply_profile_speed(0);
+    Odometry_Reset();
+    g_car_started = 1u;
+}
+
 // 上电默认档位: 慢速。必须在main.c里line_following_init()之后调用,
 // 否则会被line_following_init()里设的快速初值覆盖回去。
 // 没有修改trace_task.c/trace_config.h本身的初始化逻辑或调好的正常速度
@@ -163,6 +188,7 @@ void GCS_Cmd_Init(void)
 {
     g_car_started = 0u;
     g_task_number = 0u;
+    g_start_requested = 0u;
     g_current_speed_mm_s = 0;
     g_target_speed_mm_s = GCS_SPEED_TASK2_SLOW_MM_S;
     g_last_ramp_ms = g_system_tick_ms;
@@ -284,26 +310,17 @@ void GCS_Cmd_Poll(void)
         if (g_car_started == 0u)
         {
             g_task_number = task_number;
+            try_start_car();
         }
         return;
     }
 
     if (parse_car_start_cmd(line))
     {
-        if ((g_car_started == 0u) && (g_task_number != 0u))
+        if (g_car_started == 0u)
         {
-            uint32_t start_ms = g_system_tick_ms;
-
-            g_current_speed_mm_s = 0;
-            g_task2_initial_fast_active =
-                (g_task_number == 2u) ? 1u : 0u;
-            g_task2_initial_fast_start_ms = start_ms;
-            apply_slow_speed();
-            g_last_ramp_ms = start_ms;
-            g_task1_profile_start_ms = start_ms;
-            apply_profile_speed(0);
-            Odometry_Reset();
-            g_car_started = 1u;
+            g_start_requested = 1u;
+            try_start_car();
         }
         return;
     }
