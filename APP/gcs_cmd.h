@@ -1,17 +1,10 @@
 #ifndef __GCS_CMD_H
 #define __GCS_CMD_H
 
-//==============================================================================
-// 地面站下行指令解析(见项目根目录"地面站下行指令协议.md"第一节:小车速度档)
-//------------------------------------------------------------------------------
-// 题号帧: $CAR,T,1*35\r\n或$CAR,T,2*36\r\n，必须先于启动帧。
-// 启动帧: $CAR,S,1*32\r\n，上电后只生效一次。
-// 速度帧: $CAR,V,<code>*<CK>\r\n，code=1任务慢速，code=2快速200mm/s。
-//   CK = '$'与'*'之间所有字符逐字节XOR, 两位大写十六进制
-// 该指令经RDK_Link(USART1)收到, 本模块负责解析+校验+生效到g_line_controller。
-// 第一题慢速100mm/s，第二题慢速130mm/s；题号帧和启动帧重复接收均幂等。
-//==============================================================================
+#include <stdint.h>
 
+// Standalone speed-test controller. The car starts automatically after power-up;
+// RDK task, start, and speed commands have no effect in this project.
 void GCS_Cmd_Init(void);
 void GCS_Cmd_Poll(void);
 void GCS_Cmd_Update(void);
