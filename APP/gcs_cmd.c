@@ -19,7 +19,6 @@
 
 static uint8_t g_car_started = 0u;
 static uint8_t g_task_number = 0u;
-static uint8_t g_start_requested = 0u;
 static int16_t g_current_speed_mm_s = 0;
 static int16_t g_target_speed_mm_s = GCS_SPEED_TASK2_SLOW_MM_S;
 static uint32_t g_last_ramp_ms = 0u;
@@ -160,9 +159,7 @@ static void try_start_car(void)
 {
     uint32_t start_ms;
 
-    if ((g_car_started != 0u) ||
-        (g_start_requested == 0u) ||
-        (g_task_number == 0u))
+    if ((g_car_started != 0u) || (g_task_number == 0u))
     {
         return;
     }
@@ -188,7 +185,6 @@ void GCS_Cmd_Init(void)
 {
     g_car_started = 0u;
     g_task_number = 0u;
-    g_start_requested = 0u;
     g_current_speed_mm_s = 0;
     g_target_speed_mm_s = GCS_SPEED_TASK2_SLOW_MM_S;
     g_last_ramp_ms = g_system_tick_ms;
@@ -317,11 +313,8 @@ void GCS_Cmd_Poll(void)
 
     if (parse_car_start_cmd(line))
     {
-        if (g_car_started == 0u)
-        {
-            g_start_requested = 1u;
-            try_start_car();
-        }
+        // Optional compatibility frame. A valid task frame starts the car.
+        try_start_car();
         return;
     }
 
